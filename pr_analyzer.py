@@ -610,18 +610,16 @@ def main():
             result = future.result()
             prs_data.append(result)
 
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
-    json_filename = output_dir / f"prs_data_{timestamp}.json"
+    json_filename = output_dir / "prs_data.json"
     save_to_json(prs_data, json_filename)
 
-    md_filename = output_dir / f"prs_report_{timestamp}.md"
+    md_filename = output_dir / "prs_report.md"
     generate_markdown(prs_data, md_filename)
 
-    summary_md_filename = output_dir / f"prs_summary_{timestamp}.md"
+    summary_md_filename = output_dir / "prs_summary.md"
     generate_summary_markdown(prs_data, summary_md_filename)
 
-    issues_diffs_md_filename = output_dir / f"prs_issues_diffs_{timestamp}.md"
+    issues_diffs_md_filename = output_dir / "prs_issues_diffs.md"
     generate_issues_and_diffs_markdown(prs_data, issues_diffs_md_filename)
     
     generate_file_based_markdown(prs_data, output_dir)
