@@ -467,10 +467,104 @@ def generate_issues_and_diffs_markdown(prs_data, filename):
     print(f"Issues内容と変更差分Markdownを 完了 に保存しました")
 
 
+def generate_file_based_markdown(prs_data, output_dir):
+    """編集対象ファイルごとにPRをグループ化し、それぞれのMarkdownを生成する"""
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    file_to_prs = {}
+    valid_prs = [pr for pr in prs_data if pr]  # Noneを除外
+    
+    for pr in valid_prs:
+        if "files" in pr and pr["files"]:
+            for file in pr["files"]:
+                filename = file["filename"]
+                if filename not in file_to_prs:
+                    file_to_prs[filename] = []
+                file_to_prs[filename].append((pr, file))
+    
+    files_dir = output_dir / "files"
+    files_dir.mkdir(exist_ok=True)
+    
+    with open(output_dir / "files_index.md", "w", encoding="utf-8") as index_f:
+        index_f.write(f"# team-mirai/policy リポジトリのファイルごとのPull Request\n\n")
+        index_f.write(f"生成日時: {now}\n\n")
+        index_f.write(f"## ファイル一覧\n\n")
+        
+        for filename, pr_files in sorted(file_to_prs.items()):
+            safe_filename = filename.replace("/", "_").replace("\\", "_")
+            file_md_path = files_dir / f"{safe_filename}.md"
+            
+            pr_count = len(pr_files)
+            index_f.write(f"- [{filename}]({file_md_path.relative_to(output_dir)}) ({pr_count}件のPR)\n")
+            
+            with open(file_md_path, "w", encoding="utf-8") as f:
+                f.write(f"# {filename} に関するPull Request\n\n")
+                f.write(f"生成日時: {now}\n\n")
+                f.write(f"## このファイルに影響するPull Request ({pr_count}件)\n\n")
+                
+                f.write("| # | タイトル | 作成者 | 作成日 | 状態 | 変更 |\n")
+                f.write("|---|---------|--------|--------|------|------|\n")
+                
+                for pr_data, file_data in sorted(pr_files, key=lambda x: x[0]["basic_info"]["number"]):
+                    basic = pr_data["basic_info"]
+                    pr_number = basic["number"]
+                    title = basic["title"]
+                    user = basic["user"]["login"]
+                    created_at = basic["created_at"].split("T")[0]
+                    status = file_data["status"]
+                    changes = f"+{file_data.get('additions', 0)}/-{file_data.get('deletions', 0)}"
+                    
+                    f.write(f"| #{pr_number} | [{title}]({basic['html_url']}) | {user} | {created_at} | {status} | {changes} |\n")
+                
+                f.write("\n## 各Pull Requestの詳細\n\n")
+                
+                for pr_data, file_data in sorted(pr_files, key=lambda x: x[0]["basic_info"]["number"]):
+                    basic = pr_data["basic_info"]
+                    pr_number = basic["number"]
+                    title = basic["title"]
+                    user = basic["user"]["login"]
+                    created_at = basic["created_at"].replace("T", " ").replace("Z", "")
+                    
+                    f.write(f"### #{pr_number}: {title}\n\n")
+                    f.write(f"- **URL**: {basic['html_url']}\n")
+                    f.write(f"- **作成者**: {user}\n")
+                    f.write(f"- **作成日時**: {created_at}\n")
+                    f.write(f"- **ブランチ**: {basic['head']['ref']} → {basic['base']['ref']}\n\n")
+                    
+                    if basic["body"]:
+                        f.write(f"#### Issue内容\n\n{basic['body']}\n\n")
+                    else:
+                        f.write("#### Issue内容\n\n*内容なし*\n\n")
+                    
+                    f.write("#### 変更差分\n\n")
+                    filename = file_data["filename"]
+                    status = file_data["status"]
+                    additions = file_data.get("additions", 0)
+                    deletions = file_data.get("deletions", 0)
+                    
+                    f.write(f"##### {filename} ({status}, +{additions}/-{deletions})\n\n")
+                    
+                    if "patch" in file_data:
+                        f.write("```diff\n")
+                        f.write(file_data["patch"])
+                        f.write("\n```\n\n")
+                    else:
+                        f.write("*差分情報なし*\n\n")
+                    
+                    f.write("---\n\n")
+        
+        total_files = len(file_to_prs)
+        index_f.write(f"\n\n合計: {total_files}個のファイルが変更されています。\n")
+    
+    print(f"ファイルごとのMarkdownを {files_dir} に保存しました")
+    print(f"ファイル一覧インデックスを {output_dir / 'files_index.md'} に保存しました")
+
+
 def main():
     args = parse_arguments()
 
-    output_dir = Path(args.output_dir)
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_dir = Path(f"{args.output_dir}_{timestamp}")
     output_dir.mkdir(exist_ok=True)
 
     print("team-mirai/policy リポジトリのオープンPRを収集しています...")
@@ -529,12 +623,15 @@ def main():
 
     issues_diffs_md_filename = output_dir / f"prs_issues_diffs_{timestamp}.md"
     generate_issues_and_diffs_markdown(prs_data, issues_diffs_md_filename)
+    
+    generate_file_based_markdown(prs_data, output_dir)
 
     print("処理が完了しました。")
     print(f"JSON出力: {json_filename}")
     print(f"詳細Markdown出力: {md_filename}")
     print(f"サマリーMarkdown出力: {summary_md_filename}")
     print(f"Issues内容と変更差分出力: {issues_diffs_md_filename}")
+    print(f"ファイルごとのMarkdown出力: {output_dir / 'files'} (インデックス: {output_dir / 'files_index.md'})")
 
 
 if __name__ == "__main__":
