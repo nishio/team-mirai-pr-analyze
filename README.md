@@ -52,19 +52,19 @@ python3 pr_analyzer_improved.py --limit 0 --workers 20
 
 スクリプトは以下の種類のファイルを生成します:
 
-1. **JSONデータ**: `prs_data_YYYYMMDD_HHMMSS.json`
+1. **JSONデータ**: `prs_data.json`
    - すべての収集データを含む生のJSONファイル
    - プログラムによる分析に適しています
 
-2. **詳細Markdownレポート**: `prs_report_YYYYMMDD_HHMMSS.md`
+2. **詳細Markdownレポート**: `prs_report.md`
    - 各PRの詳細情報を含む完全なレポート
    - PRの本文、コメント、変更ファイル、コミットなどの詳細情報を含みます
 
-3. **サマリーMarkdown**: `prs_summary_YYYYMMDD_HHMMSS.md`
+3. **サマリーMarkdown**: `prs_summary.md`
    - PRの概要情報を含む簡潔なレポート
    - 作成者別の統計、最近のPR、よく変更されるファイルなどの概要情報を含みます
 
-4. **Issues内容と変更差分Markdown**: `prs_issues_diffs_YYYYMMDD_HHMMSS.md`
+4. **Issues内容と変更差分Markdown**: `prs_issues_diffs.md`
    - 各PRのIssue内容と変更差分を含むレポート
    - 全PRの変更差分を一度に確認したい場合に便利です
 
